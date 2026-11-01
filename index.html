@@ -165,7 +165,8 @@ async function load() {
     supabase.from('exit_interviews').select('*'),
     supabase.from('gc_stats').select('*').order('snapshot'),
   ]);
-  players = (pl.data || []).sort((a, b) => a.name.split(' ').slice(-1)[0].localeCompare(b.name.split(' ').slice(-1)[0]));
+  const lastName = n => n.replace(/\s+(jr|sr|ii|iii|iv)\.?$/i, '').split(' ').slice(-1)[0];
+  players = (pl.data || []).sort((a, b) => lastName(a.name).localeCompare(lastName(b.name)));
   profiles = pr.data || []; notes = nt.data || []; cage = lg.data || [];
   reports = (fb.data || []).filter(r => !r.video_path && r.result);
   exits = ex.data || []; gc = gs.data || [];
