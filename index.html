@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Makos Coaches">
+<meta name="robots" content="noindex">
+<title>Makos Coaches</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --navy:#0a1628; --navy2:#0d2847; --cyan:#00bfff; --white:#f2f6fb; --muted:#8fa0bb; --hair:rgba(255,255,255,.1); --surface:rgba(255,255,255,.05); --gold:#ffd23f; --red:#ff8a9a; --green:#5ee6a0; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:linear-gradient(180deg,var(--navy2),var(--navy) 40%); background-attachment:fixed; color:var(--white); font-family:Inter, Arial, sans-serif; min-height:100vh; -webkit-tap-highlight-color:transparent; }
+  .wrap { max-width:620px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 16px) 14px 90px; }
+  h1 { font-family:'Bebas Neue', Impact, sans-serif; font-weight:400; font-size:34px; letter-spacing:1px; margin:0; line-height:1; }
+  h1 b { color:var(--cyan); font-weight:400; }
+  .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+  .top { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .top img { width:44px; height:44px; border-radius:10px; }
+  .top .who { margin-left:auto; text-align:right; font-size:12px; color:var(--muted); }
+  .top .who button { background:none; border:none; color:var(--muted); text-decoration:underline; font:inherit; font-size:12px; padding:0; cursor:pointer; }
+  .tabs, .chips { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0; }
+  .tabs button, .chips button { background:transparent; border:1px solid var(--hair); color:var(--muted); border-radius:999px; padding:7px 14px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+  .tabs button.on, .chips button.on { background:var(--cyan); border-color:var(--cyan); color:var(--navy); }
+  .card { background:var(--surface); border:1px solid var(--hair); border-radius:16px; padding:14px; margin:12px 0; }
+  .card h3 { margin:0 0 10px; font-size:12px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase; color:var(--cyan); }
+  .row { display:grid; grid-template-columns:auto 1fr auto; gap:4px 12px; align-items:center; background:var(--surface); border:1px solid var(--hair); border-radius:14px; padding:12px 14px; margin:8px 0; cursor:pointer; }
+  .row:active { transform:scale(.99); }
+  .num { font-family:'Bebas Neue', Impact, sans-serif; font-size:20px; color:var(--cyan); min-width:34px; }
+  .name { font-weight:800; font-size:16px; }
+  .meta { grid-column:2 / -1; font-size:12.5px; color:var(--muted); }
+  .badge { font-size:10.5px; font-weight:800; letter-spacing:1px; border-radius:999px; padding:3px 9px; text-transform:uppercase; white-space:nowrap; }
+  .badge.ok { background:rgba(94,230,160,.15); color:var(--green); }
+  .badge.todo { background:rgba(255,255,255,.07); color:var(--muted); }
+  .badge.mastered { background:var(--gold); color:var(--navy); }
+  .badge.struggled { background:rgba(255,138,154,.15); color:var(--red); }
+  .badge.nailed { background:rgba(94,230,160,.15); color:var(--green); }
+  .badge.getting { background:rgba(0,191,255,.15); color:var(--cyan); }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+  .stat { background:rgba(0,0,0,.2); border-radius:12px; padding:10px; text-align:center; }
+  .stat b { display:block; font-family:'Bebas Neue', Impact, sans-serif; font-size:28px; font-weight:400; line-height:1; }
+  .stat span { font-size:10.5px; color:var(--muted); font-weight:700; letter-spacing:.8px; text-transform:uppercase; }
+  .rep { border-top:1px solid var(--hair); padding:9px 0; font-size:13.5px; }
+  .rep:first-of-type { border-top:none; }
+  .rep .l1 { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .rep .when { color:var(--muted); font-size:12px; }
+  .rep q { display:block; color:var(--muted); font-style:italic; margin-top:3px; }
+  .month { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .month h3 { margin:0; }
+  .month button { background:transparent; border:1px solid var(--hair); color:var(--white); border-radius:9px; width:40px; height:32px; font-size:15px; cursor:pointer; }
+  .month button:disabled { opacity:.25; }
+  label.f { display:block; margin-bottom:10px; }
+  label.f span { display:block; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  textarea, input.in { width:100%; background:rgba(0,0,0,.28); border:1px solid var(--hair); border-radius:11px; color:var(--white); font:inherit; font-size:16px; padding:10px 12px; }
+  textarea { min-height:62px; resize:vertical; }
+  textarea:focus, input.in:focus { outline:none; border-color:var(--cyan); }
+  textarea::placeholder { color:rgba(255,255,255,.28); }
+  .btn { width:100%; background:var(--cyan); color:var(--navy); border:none; border-radius:12px; padding:13px; font:inherit; font-weight:800; letter-spacing:1px; font-size:14px; cursor:pointer; margin-top:4px; }
+  .btn:disabled { opacity:.5; }
+  .msg { font-size:12.5px; color:var(--muted); min-height:16px; margin-top:7px; text-align:center; }
+  .msg.err { color:var(--red); }
+  .note { border-top:1px solid var(--hair); padding:11px 0; }
+  .sep + .note { border-top:none; }
+  .sep { margin:14px 0 2px; font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+  .nmeta { display:flex; gap:8px; align-items:center; font-size:12.5px; color:var(--muted); margin-bottom:4px; flex-wrap:wrap; }
+  .nmeta b { color:var(--white); }
+  .nmeta .tag { background:rgba(0,191,255,.15); color:var(--cyan); border-radius:999px; padding:1px 8px; font-weight:700; font-size:11px; }
+  .nmeta .kid { color:var(--cyan); font-weight:800; cursor:pointer; }
+  .nmeta .del { margin-left:auto; background:none; border:none; color:var(--muted); font:inherit; font-size:12px; cursor:pointer; }
+  .nmeta .del.sure { color:var(--red); font-weight:800; }
+  .nbody { font-size:15.5px; line-height:1.45; white-space:pre-wrap; }
+  .back { background:none; border:none; color:var(--cyan); font:inherit; font-weight:700; font-size:14px; padding:0; margin-bottom:8px; cursor:pointer; }
+  .empty { color:var(--muted); font-size:14px; padding:6px 0; }
+  .login { max-width:400px; margin:12vh auto 0; text-align:center; }
+  .login img { width:96px; border-radius:20px; margin-bottom:14px; }
+  .login p { color:var(--muted); font-size:14px; line-height:1.5; }
+  .login input { text-align:center; margin:12px 0 4px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="empty" style="text-align:center;margin-top:30vh">Loading…</div></div>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+const supabase = createClient('https://rvmvwijyxeghzchyxeht.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2bXZ3aWp5eGVnaHpjaHl4ZWh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTgyNzAsImV4cCI6MjA5NDc3NDI3MH0.2BHCqPngS08Bpa-mOkN3pJW10zhfHosIymmCvdyIY8s');
+const TEAM_ID = 'makos-11u';
+// Hitting groups from the 10/30 sign-ups (Makos_11U_Groups_and_Practice_Plan.xlsx)
+const GROUP = {"aj-bledsoe": "Southfield", "anthony-aboufawaz": "Rochester", "ben-lehman": "Southfield", "blake-harrington": "Southfield", "bradley-kling": "Rochester", "camden-helms": "Rochester", "camden-wigwenkloski": "Rochester", "connor-furwa": "Southfield", "emory-ahart": "Rochester", "gibson-oliverio": "Southfield", "harrison-mumaw": "Rochester", "hayden-frye": "Southfield", "jabril-griffin": "Southfield", "james-petrous": "Rochester", "luke-christie": "Southfield", "maddox-cross": "Southfield", "noah-dababneh": "Rochester", "owen-martin": "Rochester", "reginald-thomas-iii": "Southfield", "robert-hoffman-iii": "Rochester", "sami-aboufawaz": "Rochester"};
+const TAGS = ['General', 'Hitting', 'Fielding', 'Throwing', 'Pitching', 'Mindset', 'Family'];
+const FIELDS = [['positions', 'Positions'], ['strengths', 'Strengths'], ['work_on', 'Needs work on'], ['what_works', 'What works with him'], ['next_plan', "Next month's plan"]];
+const RESULT = { nailed: 'Nailed it', getting: 'Getting there', struggled: 'Struggled' };
+
+const $ = id => document.getElementById(id);
+const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const monthOf = d => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-01`; };
+const monthName = m => new Date(m + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+const shift = (m, n) => { const d = new Date(m + 'T12:00:00'); d.setMonth(d.getMonth() + n); return monthOf(d); };
+const ago = ts => { const d = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; };
+const coachName = e => /devan/i.test(e || '') ? 'Devan' : /nick|plummer/i.test(e || '') ? 'Nick' : (e || 'Coach').split('@')[0];
+const written = r => r && FIELDS.some(([k]) => (r[k] || '').trim());
+
+let me = '', players = [], profiles = [], notes = [], cage = [], reports = [];
+let tab = 'players', group = 'All', tag = 'General';
+const THIS_MONTH = monthOf(new Date());
+
+async function load() {
+  const [pl, pr, nt, lg, fb] = await Promise.all([
+    supabase.from('players').select('id, name, num, season').eq('team_id', TEAM_ID).order('name'),
+    supabase.from('player_profiles').select('*'),
+    supabase.from('coach_notes').select('*').order('created_at', { ascending: false }).limit(3000),
+    supabase.from('log').select('player_id, ts, pts').eq('team_id', TEAM_ID).eq('type', 'cage').order('ts', { ascending: false }).limit(2000),
+    supabase.from('cage_feedback').select('id, player_id, created_at, result, mastered, hit, total, note, series, video_path').order('created_at', { ascending: false }).limit(1000),
+  ]);
+  players = (pl.data || []).sort((a, b) => a.name.split(' ').slice(-1)[0].localeCompare(b.name.split(' ').slice(-1)[0]));
+  profiles = pr.data || []; notes = nt.data || []; cage = lg.data || [];
+  reports = (fb.data || []).filter(r => !r.video_path && r.result);
+  if (pr.error || nt.error) return 'notes-off';
+}
+
+function renderHome() {
+  const kids = players.filter(p => group === 'All' || GROUP[p.id] === group);
+  const done = players.filter(p => written(profiles.find(r => r.player_id === p.id && r.month === THIS_MONTH))).length;
+  $('app').innerHTML = header() + `
+    <div class="tabs"><button data-t="players" class="${tab === 'players' ? 'on' : ''}">Players</button><button data-t="talk" class="${tab === 'talk' ? 'on' : ''}">Discussion</button></div>
+    ${tab === 'players' ? `
+      <div class="chips">${['All', 'Rochester', 'Southfield'].map(g => `<button data-g="${g}" class="${g === group ? 'on' : ''}">${g}</button>`).join('')}</div>
+      <div class="sub" style="margin:4px 2px 6px">${done} / ${players.length} written up for ${monthName(THIS_MONTH).split(' ')[0]}</div>
+      ${kids.map(p => {
+        const n = notes.filter(x => x.player_id === p.id);
+        const c = cage.filter(x => x.player_id === p.id);
+        const ok = written(profiles.find(r => r.player_id === p.id && r.month === THIS_MONTH));
+        return `<div class="row" data-p="${p.id}"><div class="num">#${p.num}</div><div class="name">${esc(p.name)}</div>
+          <span class="badge ${ok ? 'ok' : 'todo'}">${ok ? 'Written' : 'To write'}</span>
+          <div class="meta">${GROUP[p.id] || ''}${GROUP[p.id] ? ' · ' : ''}${n.length} note${n.length === 1 ? '' : 's'} · ${c.length ? 'last cage ' + ago(c[0].ts) : 'no cage sessions'}</div></div>`;
+      }).join('')}` : feed(notes.slice(0, 150), true)}`;
+  wireHeader();
+  document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; renderHome(); });
+  document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { group = b.dataset.g; renderHome(); });
+  document.querySelectorAll('.row[data-p]').forEach(r => r.onclick = () => openPlayer(r.dataset.p));
+  wireFeed(null);
+}
+
+function header() {
+  return `<div class="top"><img src="icons/icon-192.png" alt=""><div><h1>MAKOS <b>COACHES</b></h1><div class="sub">Player notes · coaches only</div></div>
+    <div class="who">${esc(coachName(me))}<br><button id="out">Sign out</button></div></div>`;
+}
+function wireHeader() { $('out').onclick = async () => { await supabase.auth.signOut(); location.reload(); }; }
+
+function feed(list, showKid) {
+  if (!list.length) return '<div class="empty">No notes yet.</div>';
+  return list.map((n, i) => `${i === 0 || monthOf(n.created_at) !== monthOf(list[i - 1].created_at) ? `<div class="sep">${monthName(monthOf(n.created_at))}</div>` : ''}
+    <div class="note"><div class="nmeta"><b>${esc(coachName(n.author))}</b>${showKid ? `<span class="kid" data-p="${n.player_id}">${esc(players.find(p => p.id === n.player_id)?.name || n.player_id)}</span>` : ''}<span class="tag">${esc(n.tag)}</span><span>${ago(n.created_at)}</span>${n.author === me ? `<button class="del" data-id="${n.id}">Delete</button>` : ''}</div>
+    <div class="nbody">${esc(n.body)}</div></div>`).join('');
+}
+function wireFeed(pid, month) {
+  document.querySelectorAll('.kid[data-p]').forEach(k => k.onclick = () => openPlayer(k.dataset.p));
+  document.querySelectorAll('.del').forEach(b => b.onclick = async () => {
+    if (!b.classList.contains('sure')) { b.classList.add('sure'); b.textContent = 'Tap again to delete'; return; }
+    const { error } = await supabase.from('coach_notes').delete().eq('id', b.dataset.id);
+    if (error) { b.textContent = 'Could not delete'; return; }
+    notes = notes.filter(n => n.id !== b.dataset.id);
+    pid ? openPlayer(pid, month) : renderHome();
+  });
+}
+
+function openPlayer(pid, month = THIS_MONTH) {
+  const p = players.find(x => x.id === pid); if (!p) return;
+  const prof = profiles.find(r => r.player_id === pid && r.month === month) || {};
+  // Last month's write-up shows faintly in empty boxes, so a new month starts from it
+  const prev = profiles.filter(r => r.player_id === pid && r.month < month && written(r)).sort((a, b) => b.month.localeCompare(a.month))[0] || {};
+  const mine = notes.filter(n => n.player_id === pid);
+  const c = cage.filter(x => x.player_id === pid);
+  const inMonth = c.filter(x => monthOf(x.ts) === month).length;
+  const reps = reports.filter(r => r.player_id === pid);
+  const mReps = reps.filter(r => monthOf(r.created_at) === month);
+  $('app').innerHTML = `<button class="back" id="back">◂ All players</button>
+    <h1>#${p.num} ${esc(p.name.toUpperCase())}</h1><div class="sub">${GROUP[pid] || ''}</div>
+    <div class="card"><h3>From the app · ${monthName(month).split(' ')[0]}</h3>
+      <div class="stats"><div class="stat"><b>${inMonth}</b><span>Cage sessions</span></div>
+        <div class="stat"><b>${mReps.filter(r => r.mastered).length}</b><span>Mastered</span></div>
+        <div class="stat"><b>${p.season || 0}</b><span>Season pts</span></div></div>
+      ${reps.length ? reps.slice(0, 5).map(r => `<div class="rep"><div class="l1"><span class="badge ${r.mastered ? 'mastered' : esc(r.result)}">${r.mastered ? 'Mastered' : esc(RESULT[r.result] || r.result)}</span>${r.total ? `<b>${r.hit}/${r.total} benchmarks</b>` : ''}<span class="when">${ago(r.created_at)}</span></div>${r.note ? `<q>${esc(r.note)}</q>` : ''}</div>`).join('') : '<div class="empty">No session reports from him yet.</div>'}
+    </div>
+    <div class="card">
+      <div class="month"><button id="mPrev">◂</button><h3>${monthName(month)}</h3><button id="mNext" ${month >= THIS_MONTH ? 'disabled' : ''}>▸</button></div>
+      ${FIELDS.map(([k, label]) => `<label class="f"><span>${label}</span><textarea data-k="${k}" rows="2" placeholder="${esc(prev[k] || '')}">${esc(prof[k] || '')}</textarea></label>`).join('')}
+      <button class="btn" id="save">SAVE ${monthName(month).split(' ')[0].toUpperCase()}</button>
+      <div class="msg" id="saveMsg">${prof.updated_at ? `Last edit: ${coachName(prof.updated_by)} ${ago(prof.updated_at)}` : ''}</div>
+    </div>
+    <div class="card"><h3>Discussion</h3>
+      <div class="chips">${TAGS.map(t => `<button data-tag="${t}" class="${t === tag ? 'on' : ''}">${t}</button>`).join('')}</div>
+      <textarea id="newNote" rows="3" placeholder="What did you see? What should the other coach know?"></textarea>
+      <button class="btn" id="add">ADD NOTE</button><div class="msg" id="addMsg"></div>
+      ${feed(mine, false)}
+    </div>`;
+  window.scrollTo(0, 0);
+  $('back').onclick = renderHome;
+  $('mPrev').onclick = () => openPlayer(pid, shift(month, -1));
+  $('mNext').onclick = () => openPlayer(pid, shift(month, 1));
+  document.querySelectorAll('[data-tag]').forEach(b => b.onclick = () => { tag = b.dataset.tag; document.querySelectorAll('[data-tag]').forEach(x => x.classList.toggle('on', x === b)); });
+  $('save').onclick = async e => {
+    const row = { player_id: pid, month, updated_by: me, updated_at: new Date().toISOString() };
+    document.querySelectorAll('textarea[data-k]').forEach(t => { row[t.dataset.k] = t.value.trim(); });
+    e.target.disabled = true;
+    const { error } = await supabase.from('player_profiles').upsert(row);
+    e.target.disabled = false;
+    $('saveMsg').className = 'msg' + (error ? ' err' : '');
+    $('saveMsg').textContent = error ? 'Could not save. Try again.' : 'Saved.';
+    if (!error) { profiles = profiles.filter(r => !(r.player_id === pid && r.month === month)); profiles.push(row); }
+  };
+  $('add').onclick = async e => {
+    const body = $('newNote').value.trim(); if (!body) return;
+    e.target.disabled = true;
+    const { data, error } = await supabase.from('coach_notes').insert({ player_id: pid, author: me, tag, body }).select().single();
+    e.target.disabled = false;
+    if (error || !data) { $('addMsg').className = 'msg err'; $('addMsg').textContent = 'Could not save. Try again.'; return; }
+    notes.unshift(data); openPlayer(pid, month);
+  };
+  wireFeed(pid, month);
+}
+
+function renderLogin(step, email, msg) {
+  if (step === 'code') {
+    $('app').innerHTML = `<div class="login"><img src="icons/icon-192.png" alt=""><h1>ENTER YOUR <b>CODE</b></h1>
+      <p>We emailed a sign-in code to <b style="color:var(--white)">${esc(email)}</b>. Check spam too.</p>
+      <input class="in" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="••••••">
+      <button class="btn" id="go">SIGN IN</button><div class="msg ${msg ? 'err' : ''}" id="st">${msg || ''}</div>
+      <p><button class="back" id="again">Use a different email</button></p></div>`;
+    $('again').onclick = () => renderLogin('email');
+    $('go').onclick = async () => {
+      const token = $('code').value.replace(/\D/g, '');
+      if (token.length < 6) { $('st').className = 'msg err'; $('st').textContent = 'Enter the full code from the email.'; return; }
+      $('st').className = 'msg'; $('st').textContent = 'Checking…';
+      const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+      if (error) { $('st').className = 'msg err'; $('st').textContent = 'That code did not work. Check it, or send a new one.'; return; }
+      location.reload();
+    };
+    return;
+  }
+  $('app').innerHTML = `<div class="login"><img src="icons/icon-192.png" alt=""><h1>MAKOS <b>COACHES</b></h1>
+    <p>For Makos coaches only. Enter your coach email and we'll send you a sign-in code.</p>
+    <input class="in" id="em" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" value="${esc(email || '')}">
+    <button class="btn" id="send">SEND MY CODE</button><div class="msg ${msg ? 'err' : ''}" id="st">${msg || ''}</div></div>`;
+  $('send').onclick = async () => {
+    const em = $('em').value.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { $('st').className = 'msg err'; $('st').textContent = 'Enter a valid email.'; return; }
+    $('send').disabled = true; $('st').className = 'msg'; $('st').textContent = 'Checking…';
+    const { data: ok } = await supabase.rpc('email_allowed', { check_email: em });
+    if (!ok) { $('send').disabled = false; $('st').className = 'msg err'; $('st').textContent = 'That email is not on the Makos list.'; return; }
+    const { error } = await supabase.auth.signInWithOtp({ email: em, options: { shouldCreateUser: true } });
+    $('send').disabled = false;
+    if (error) { $('st').className = 'msg err'; $('st').textContent = error.status === 429 ? 'Too many tries. Wait a minute.' : 'Could not send the code. Try again.'; return; }
+    renderLogin('code', em);
+  };
+}
+
+(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return renderLogin('email');
+  me = (session.user.email || '').toLowerCase();
+  const { data: acc } = await supabase.from('family_access').select('email, role');
+  if (!(acc || []).some(r => (r.email || '').toLowerCase() === me && r.role === 'coach')) {
+    await supabase.auth.signOut();
+    return renderLogin('email', me, 'This app is for Makos coaches only.');
+  }
+  const state = await load();
+  if (state === 'notes-off') { $('app').innerHTML = header() + '<div class="card"><h3>Almost ready</h3><div class="empty">Player notes are not switched on yet. Run coach-notes.sql in Supabase once, then reload.</div></div>'; wireHeader(); return; }
+  renderHome();
+})();
+</script>
+</body>
+</html>
