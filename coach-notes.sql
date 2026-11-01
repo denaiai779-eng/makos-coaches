@@ -69,3 +69,19 @@ alter table public.exit_interviews enable row level security;
 drop policy if exists "coaches manage exit interviews" on public.exit_interviews;
 create policy "coaches manage exit interviews" on public.exit_interviews for all to authenticated
   using (public.is_coach()) with check (public.is_coach());
+
+-- 4. GameChanger numbers: each import of a GameChanger "Export stats" file saves one snapshot per player
+create table if not exists public.gc_stats (
+  id uuid primary key default gen_random_uuid(),
+  player_id text not null references public.players(id) on delete cascade,
+  snapshot date not null,
+  team text,
+  stats jsonb not null,
+  imported_by text not null default public.my_email(),
+  imported_at timestamptz not null default now(),
+  unique (player_id, snapshot, team)
+);
+alter table public.gc_stats enable row level security;
+drop policy if exists "coaches manage gc stats" on public.gc_stats;
+create policy "coaches manage gc stats" on public.gc_stats for all to authenticated
+  using (public.is_coach()) with check (public.is_coach());

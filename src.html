@@ -77,6 +77,16 @@
   .nbody { font-size:15.5px; line-height:1.45; white-space:pre-wrap; }
   .back { background:none; border:none; color:var(--cyan); font:inherit; font-weight:700; font-size:14px; padding:0; margin-bottom:8px; cursor:pointer; }
   .empty { color:var(--muted); font-size:14px; padding:6px 0; }
+  .gc-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px; }
+  .gc-grid div { background:rgba(0,0,0,.2); border-radius:10px; padding:8px 4px; text-align:center; }
+  .gc-grid b { display:block; font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; font-weight:400; line-height:1.05; }
+  .gc-grid span { font-size:10px; color:var(--muted); font-weight:800; letter-spacing:.8px; }
+  .gc-grid i { display:block; font-style:normal; font-size:10.5px; font-weight:800; }
+  .gc-grid i.up { color:var(--green); } .gc-grid i.dn { color:var(--red); }
+  .gc-sec { font-size:11px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); margin:6px 0 5px; }
+  .imp { display:grid; grid-template-columns:1fr auto; gap:6px 10px; align-items:center; font-size:14px; padding:7px 0; border-top:1px solid var(--hair); }
+  .imp select { background:rgba(0,0,0,.3); color:var(--white); border:1px solid var(--hair); border-radius:8px; padding:6px; font:inherit; font-size:14px; max-width:180px; }
+  .ghost { background:transparent; border:1px solid var(--hair); color:var(--white); border-radius:12px; padding:11px; font:inherit; font-weight:800; letter-spacing:1px; font-size:13px; width:100%; cursor:pointer; margin-top:10px; }
   .exit-btn { display:flex; justify-content:space-between; align-items:center; width:100%; background:linear-gradient(120deg,rgba(255,210,63,.16),rgba(255,210,63,.06)); border:1px solid rgba(255,210,63,.45); color:var(--gold); border-radius:14px; padding:13px 14px; font:inherit; font-weight:800; letter-spacing:1px; font-size:14px; cursor:pointer; margin:12px 0 0; }
   .tl { border-left:2px solid var(--hair); margin-left:6px; padding-left:14px; }
   .tl .m { position:relative; padding:4px 0 12px; font-size:14px; }
@@ -133,25 +143,26 @@ const ago = ts => { const d = Math.floor((Date.now() - new Date(ts).getTime()) /
 const coachName = e => /devan/i.test(e || '') ? 'Devan' : /nick|plummer/i.test(e || '') ? 'Nick' : (e || 'Coach').split('@')[0];
 const written = r => r && FIELDS.some(([k]) => (r[k] || '').trim());
 
-let me = '', players = [], profiles = [], notes = [], cage = [], reports = [], exits = [];
+let me = '', players = [], profiles = [], notes = [], cage = [], reports = [], exits = [], gc = [];
 let tab = 'players', group = 'All', tag = 'General';
 const THIS_MONTH = monthOf(new Date());
 const SEASON = seasonOf(new Date());
 
 async function load() {
-  const [pl, pr, nt, lg, fb, ex] = await Promise.all([
+  const [pl, pr, nt, lg, fb, ex, gs] = await Promise.all([
     supabase.from('players').select('id, name, num, season').eq('team_id', TEAM_ID).order('name'),
     supabase.from('player_profiles').select('*'),
     supabase.from('coach_notes').select('*').order('created_at', { ascending: false }).limit(3000),
     supabase.from('log').select('player_id, ts, pts').eq('team_id', TEAM_ID).eq('type', 'cage').order('ts', { ascending: false }).limit(2000),
     supabase.from('cage_feedback').select('id, player_id, created_at, result, mastered, hit, total, note, series, video_path').order('created_at', { ascending: false }).limit(1000),
     supabase.from('exit_interviews').select('*'),
+    supabase.from('gc_stats').select('*').order('snapshot'),
   ]);
   players = (pl.data || []).sort((a, b) => a.name.split(' ').slice(-1)[0].localeCompare(b.name.split(' ').slice(-1)[0]));
   profiles = pr.data || []; notes = nt.data || []; cage = lg.data || [];
   reports = (fb.data || []).filter(r => !r.video_path && r.result);
-  exits = ex.data || [];
-  if (pr.error || nt.error || ex.error) return 'notes-off';
+  exits = ex.data || []; gc = gs.data || [];
+  if (pr.error || nt.error || ex.error || gs.error) return 'notes-off';
 }
 
 function renderHome() {
@@ -161,6 +172,7 @@ function renderHome() {
     <div class="tabs"><button data-t="players" class="${tab === 'players' ? 'on' : ''}">Players</button><button data-t="talk" class="${tab === 'talk' ? 'on' : ''}">Discussion</button><button data-t="exit" class="${tab === 'exit' ? 'on' : ''}">Exit Interviews</button></div>
     ${tab === 'players' ? `
       <div class="chips">${['All', 'Rochester', 'Southfield'].map(g => `<button data-g="${g}" class="${g === group ? 'on' : ''}">${g}</button>`).join('')}</div>
+      <button class="ghost" id="gcImport" style="margin:0 0 8px">⬆ IMPORT GAMECHANGER STATS</button><input type="file" id="gcFile" accept=".csv,text/csv" hidden>
       <div class="sub" style="margin:4px 2px 6px">${done} / ${players.length} written up for ${monthName(THIS_MONTH).split(' ')[0]}</div>
       ${kids.map(p => {
         const n = notes.filter(x => x.player_id === p.id);
@@ -175,6 +187,7 @@ function renderHome() {
   document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { group = b.dataset.g; renderHome(); });
   document.querySelectorAll('.row[data-p]').forEach(r => r.onclick = () => openPlayer(r.dataset.p));
   document.querySelectorAll('.row[data-x]').forEach(r => r.onclick = () => openExit(r.dataset.x));
+  if ($('gcImport')) { $('gcImport').onclick = () => $('gcFile').click(); $('gcFile').onchange = e => e.target.files[0] && startImport(e.target.files[0]); }
   wireFeed(null);
 }
 
@@ -220,6 +233,7 @@ function openPlayer(pid, month = THIS_MONTH) {
         <div class="stat"><b>${p.season || 0}</b><span>Season pts</span></div></div>
       ${reps.length ? reps.slice(0, 5).map(r => `<div class="rep"><div class="l1"><span class="badge ${r.mastered ? 'mastered' : esc(r.result)}">${r.mastered ? 'Mastered' : esc(RESULT[r.result] || r.result)}</span>${r.total ? `<b>${r.hit}/${r.total} benchmarks</b>` : ''}<span class="when">${ago(r.created_at)}</span></div>${r.note ? `<q>${esc(r.note)}</q>` : ''}</div>`).join('') : '<div class="empty">No session reports from him yet.</div>'}
     </div>
+    ${gcCard(pid)}
     <div class="card">
       <div class="month"><button id="mPrev">◂</button><h3>${monthName(month)}</h3><button id="mNext" ${month >= THIS_MONTH ? 'disabled' : ''}>▸</button></div>
       ${FIELDS.map(([k, label]) => `<label class="f"><span>${label}</span><textarea data-k="${k}" rows="2" placeholder="${esc(prev[k] || '')}">${esc(prof[k] || '')}</textarea></label>`).join('')}
@@ -259,6 +273,114 @@ function openPlayer(pid, month = THIS_MONTH) {
   wireFeed(pid, month);
 }
 
+// ===== GAMECHANGER =====
+// GameChanger has no API: a coach exports the team's season stats (web.gc.com → team → Stats → Export stats)
+// and imports the CSV here. Each import is a dated snapshot per player, so we can see how the numbers move.
+const GC_BAT = [['Batting.AVG', 'AVG', 3], ['Batting.OBP', 'OBP', 3], ['Batting.OPS', 'OPS', 3], ['Batting.QAB%', 'QAB%', 0], ['Batting.C%', 'CONTACT%', 0], ['Batting.PA', 'PA', 0], ['Batting.BB', 'BB', 0], ['Batting.SO', 'K', 0, true]];
+const GC_PIT = [['Pitching.IP', 'IP', 1], ['Pitching.ERA', 'ERA', 2, true], ['Pitching.WHIP', 'WHIP', 2, true], ['Pitching.S%', 'STRIKE%', 0], ['Pitching.SO', 'K', 0], ['Pitching.BB', 'BB', 0, true], ['Pitching.FPS%', '1ST PITCH K%', 0], ['Pitching.BAA', 'BAA', 3, true]];
+const GC_FLD = [['Fielding.FPCT', 'FLD%', 3], ['Fielding.TC', 'CHANCES', 0], ['Fielding.E', 'ERRORS', 0, true], ['Fielding.DP', 'DP', 0]];
+function parseCSV(text) {
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+function parseGC(text) {
+  const rows = parseCSV(text.replace(/^﻿/, ''));
+  if (rows.length < 3 || rows[1][0] !== 'Number' || rows[1][1] !== 'Last') return null;
+  let cat = ''; const keys = rows[0].map((c, i) => { if (c) cat = c; return i < 3 ? null : `${cat}.${rows[1][i]}`; });
+  const out = [];
+  for (const r of rows.slice(2)) {
+    if (!r[0] || r[0] === 'Totals' || r[0] === 'Glossary') break;
+    const stats = {}; keys.forEach((k, i) => { if (k && r[i] !== '' && r[i] != null && !(k in stats)) stats[k] = r[i]; });
+    out.push({ number: r[0], last: r[1], first: r[2], stats });
+  }
+  return out;
+}
+const norm = v => String(v || '').toLowerCase().replace(/\b(jr|sr|ii|iii|iv)\b\.?/g, '').replace(/[^a-z]/g, '');
+function gcMatch(r) {
+  const full = norm(r.first + r.last);
+  let hit = players.find(p => norm(p.name) === full);
+  if (!hit) { const byLast = players.filter(p => norm(p.name.split(' ').slice(1).join(' ')) === norm(r.last)); hit = byLast.length === 1 ? byLast[0] : byLast.find(p => String(p.num) === String(r.number)); }
+  return hit ? hit.id : '';
+}
+async function startImport(file) {
+  const text = await file.text();
+  const rows = parseGC(text);
+  if (!rows) { alertBox('That file is not a GameChanger stats export. On web.gc.com: team → Stats → Export stats.'); return; }
+  const team = file.name.replace(/\s*Stats\.csv$/i, '').replace(/\.csv$/i, '');
+  const now = new Date(), today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const opts = '<option value="">Skip (not a Makos kid)</option>' + players.map(p => `<option value="${p.id}">#${p.num} ${esc(p.name)}</option>`).join('');
+  $('app').innerHTML = `<button class="back" id="back">◂ Cancel</button><h1>IMPORT <b>GAMECHANGER</b></h1>
+    <div class="card"><h3>From this file</h3>
+      <label class="f"><span>Team</span><input class="in" id="gcTeam" value="${esc(team)}"></label>
+      <label class="f"><span>Stats as of</span><input class="in" id="gcDate" type="date" value="${today}"></label>
+      <div class="sub" style="margin-bottom:6px">${rows.length} players in the file. Check each match:</div>
+      ${rows.map((r, i) => `<div class="imp"><div>#${esc(r.number)} ${esc(r.first)} ${esc(r.last)} <span class="sub">· AVG ${esc(r.stats['Batting.AVG'] || '-')}</span></div>
+        <select data-i="${i}">${opts.replace(`value="${gcMatch(r)}"`, `value="${gcMatch(r)}" selected`)}</select></div>`).join('')}
+      <button class="btn" id="gcSave">SAVE STATS</button><div class="msg" id="gcMsg"></div>
+    </div>`;
+  window.scrollTo(0, 0);
+  $('back').onclick = renderHome;
+  $('gcSave').onclick = async e => {
+    const snapshot = $('gcDate').value || today, teamName = $('gcTeam').value.trim();
+    const save = [...document.querySelectorAll('select[data-i]')].filter(sel => sel.value).map(sel => ({ player_id: sel.value, snapshot, team: teamName, stats: rows[+sel.dataset.i].stats, imported_by: me }));
+    if (!save.length) { $('gcMsg').className = 'msg err'; $('gcMsg').textContent = 'No players matched. Pick who is who above.'; return; }
+    e.target.disabled = true;
+    const { error } = await supabase.from('gc_stats').upsert(save, { onConflict: 'player_id,snapshot,team' });
+    e.target.disabled = false;
+    if (error) { $('gcMsg').className = 'msg err'; $('gcMsg').textContent = 'Could not save. Try again.'; return; }
+    gc = gc.filter(g => !save.some(x => x.player_id === g.player_id && x.snapshot === g.snapshot && x.team === g.team)).concat(save).sort((a, b) => a.snapshot.localeCompare(b.snapshot));
+    $('gcMsg').className = 'msg'; $('gcMsg').textContent = `Saved ${save.length} players.`;
+    setTimeout(renderHome, 900);
+  };
+}
+function alertBox(msg) { const d = document.createElement('div'); d.className = 'card'; d.innerHTML = `<div class="msg err">${esc(msg)}</div>`; $('app').prepend(d); setTimeout(() => d.remove(), 5000); }
+const gcNum = v => { const n = parseFloat(String(v).replace('%', '')); return isNaN(n) ? null : n; };
+function gcFmt(v, dp) { const n = gcNum(v); if (n == null) return '-'; if (dp === 3 && n < 1) return n.toFixed(3).replace(/^0/, ''); return n.toFixed(dp); }
+function gcTiles(list, now, before) {
+  return `<div class="gc-grid">${list.map(([k, label, dp, lowerBetter]) => {
+    const a = now.stats[k], b = before?.stats[k];
+    let d = '';
+    if (before && gcNum(a) != null && gcNum(b) != null && gcNum(a) !== gcNum(b)) {
+      const up = gcNum(a) > gcNum(b), good = lowerBetter ? !up : up;
+      d = `<i class="${good ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${gcFmt(Math.abs(gcNum(a) - gcNum(b)), dp)}</i>`;
+    }
+    return `<div><b>${gcFmt(a, dp)}</b><span>${label}</span>${d}</div>`;
+  }).join('')}</div>`;
+}
+// season set: first vs latest snapshot of that season; otherwise latest vs the one before it
+function gcPair(pid, season) {
+  const snaps = gc.filter(g => g.player_id === pid && (!season || inSeason(g.snapshot + 'T12:00:00', season)));
+  if (!snaps.length) return null;
+  const now = snaps[snaps.length - 1];
+  return { now, before: season ? (snaps.length > 1 ? snaps[0] : null) : snaps[snaps.length - 2] || null };
+}
+function gcCard(pid, season) {
+  const p = gcPair(pid, season);
+  const day = d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (!p) return `<div class="card"><h3>GameChanger</h3><div class="empty">No GameChanger numbers yet. Import the team's stats from the Players tab.</div></div>`;
+  const pitched = gcNum(p.now.stats['Pitching.IP']) > 0;
+  const since = p.before ? (season ? `change since ${day(p.before.snapshot)}` : `change since last import (${day(p.before.snapshot)})`) : '';
+  return `<div class="card"><h3>GameChanger · as of ${day(p.now.snapshot)}</h3><div class="sub" style="margin:-6px 0 8px">${esc(p.now.team || '')}${since ? ' · ' + since : ''}</div>
+    <div class="gc-sec">Hitting</div>${gcTiles(GC_BAT, p.now, p.before)}
+    ${pitched ? `<div class="gc-sec">Pitching</div>${gcTiles(GC_PIT, p.now, p.before)}` : ''}
+    <div class="gc-sec">Fielding</div>${gcTiles(GC_FLD, p.now, p.before)}</div>`;
+}
+function gcPrint(pid) {
+  const p = gcPair(pid, SEASON); if (!p) return '';
+  const s = p.now.stats, ip = gcNum(s['Pitching.IP']) > 0;
+  const cells = [['AVG', gcFmt(s['Batting.AVG'], 3)], ['OBP', gcFmt(s['Batting.OBP'], 3)], ['OPS', gcFmt(s['Batting.OPS'], 3)], ['QAB%', gcFmt(s['Batting.QAB%'], 0)]].concat(ip ? [['ERA', gcFmt(s['Pitching.ERA'], 2)], ['Strike%', gcFmt(s['Pitching.S%'], 0)]] : [['Fld%', gcFmt(s['Fielding.FPCT'], 3)]]);
+  return `<div class="ps">${cells.map(([l, v]) => `<div><b>${v}</b>${l}</div>`).join('')}</div>`;
+}
+
 // ===== EXIT INTERVIEWS =====
 // Everything collected all season (monthly write-ups, notes, app reports) rolls up into one page per kid.
 const exitOf = pid => exits.find(r => r.player_id === pid && r.season === SEASON);
@@ -294,6 +416,7 @@ function openExit(pid) {
       <div class="stats"><div class="stat"><b>${d.sessions}</b><span>Cage sessions</span></div><div class="stat"><b>${d.mastered}</b><span>Mastered</span></div><div class="stat"><b>${p.season || 0}</b><span>Season pts</span></div></div>
       <div class="sub">${d.months.length} monthly write-ups · ${d.notes.length} coach notes${tagCount.length ? ' (' + tagCount.map(([t, n]) => `${t} ${n}`).join(', ') + ')' : ''}</div>
     </div>
+    ${gcCard(pid, SEASON)}
     <div class="card"><h3>How he changed</h3>
       ${d.months.length ? `<div class="tl">${d.months.map(m => `<div class="m"><b>${monthName(m.month)}</b>${m.work_on ? `<i>Working on:</i> ${esc(m.work_on)}<br>` : ''}${m.strengths ? `<i>Strengths:</i> ${esc(m.strengths)}` : ''}</div>`).join('')}</div>` : '<div class="empty">No monthly write-ups yet. They fill this in as the season goes.</div>'}
     </div>
@@ -319,6 +442,7 @@ function openExit(pid) {
   $('printExit').onclick = () => {
     const cur = {}; document.querySelectorAll('textarea[data-x]').forEach(t => { cur[t.dataset.x] = t.value.trim(); });
     $('print').innerHTML = `<div class="ph"><img src="icons/icon-192.png" alt=""><div><h1>${esc(p.name.toUpperCase())} · #${p.num}</h1><div>Midwest Makos 11U · Exit Interview · ${SEASON}</div></div></div>
+      ${gcPrint(pid)}
       <div class="ps"><div><b>${d.sessions}</b>Cage sessions</div><div><b>${d.mastered}</b>Mastered</div><div><b>${p.season || 0}</b>Season points</div><div><b>${d.months.length}</b>Monthly write-ups</div></div>
       ${EXIT.map(([k, label]) => `<h2>${label}</h2><p>${esc(cur[k] || '—')}</p>`).join('')}
       <div class="pf"><span>Coach Devan · Coach Nick</span><span>#ReturnToQuality</span></div>`;
