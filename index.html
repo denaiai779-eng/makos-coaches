@@ -140,7 +140,8 @@ const monthOf = d => { const x = new Date(d); return `${x.getFullYear()}-${Strin
 const monthName = m => new Date(m + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 const shift = (m, n) => { const d = new Date(m + 'T12:00:00'); d.setMonth(d.getMonth() + n); return monthOf(d); };
 const ago = ts => { const d = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; };
-const coachName = e => /devan/i.test(e || '') ? 'Devan' : /nick|plummer/i.test(e || '') ? 'Nick' : (e || 'Coach').split('@')[0];
+let STAFF = {}; // email -> display name, from staff_names()
+const coachName = e => STAFF[(e || '').toLowerCase()] || (/devan/i.test(e || '') ? 'Devan' : /nick|plummer/i.test(e || '') ? 'Nick' : (e || 'Coach').split('@')[0]);
 const written = r => r && FIELDS.some(([k]) => (r[k] || '').trim());
 
 let me = '', players = [], profiles = [], notes = [], cage = [], reports = [], exits = [], gc = [];
@@ -445,7 +446,7 @@ function openExit(pid) {
       ${gcPrint(pid)}
       <div class="ps"><div><b>${d.sessions}</b>Cage sessions</div><div><b>${d.mastered}</b>Mastered</div><div><b>${p.season || 0}</b>Season points</div><div><b>${d.months.length}</b>Monthly write-ups</div></div>
       ${EXIT.map(([k, label]) => `<h2>${label}</h2><p>${esc(cur[k] || '—')}</p>`).join('')}
-      <div class="pf"><span>Coach Devan · Coach Nick</span><span>#ReturnToQuality</span></div>`;
+      <div class="pf"><span>Midwest Makos coaching staff</span><span>#ReturnToQuality</span></div>`;
     window.print();
   };
   wireFeed(pid);
@@ -470,7 +471,7 @@ function renderLogin(step, email, msg) {
     return;
   }
   $('app').innerHTML = `<div class="login"><img src="icons/icon-192.png" alt=""><h1>MAKOS <b>COACHES</b></h1>
-    <p>For Makos coaches only. Enter your coach email and we'll send you a sign-in code.</p>
+    <p>For the Makos coaching staff only. Enter your email and we'll send you a sign-in code.</p>
     <input class="in" id="em" type="email" inputmode="email" autocomplete="email" placeholder="you@email.com" value="${esc(email || '')}">
     <button class="btn" id="send">SEND MY CODE</button><div class="msg ${msg ? 'err' : ''}" id="st">${msg || ''}</div></div>`;
   $('send').onclick = async () => {
@@ -491,10 +492,12 @@ function renderLogin(step, email, msg) {
   if (!session) return renderLogin('email');
   me = (session.user.email || '').toLowerCase();
   const { data: acc } = await supabase.from('family_access').select('email, role');
-  if (!(acc || []).some(r => (r.email || '').toLowerCase() === me && r.role === 'coach')) {
+  if (!(acc || []).some(r => (r.email || '').toLowerCase() === me && ['coach', 'pt', 'staff'].includes(r.role))) {
     await supabase.auth.signOut();
-    return renderLogin('email', me, 'This app is for Makos coaches only.');
+    return renderLogin('email', me, 'This app is for the Makos coaching staff only.');
   }
+  const { data: names } = await supabase.rpc('staff_names');
+  for (const r of Array.isArray(names) ? names : []) if (r.display_name) STAFF[r.email] = r.display_name;
   const state = await load();
   if (state === 'notes-off') { $('app').innerHTML = header() + '<div class="card"><h3>Almost ready</h3><div class="empty">Player notes are not switched on yet. Run coach-notes.sql in Supabase once, then reload.</div></div>'; wireHeader(); return; }
   renderHome();
