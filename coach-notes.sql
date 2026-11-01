@@ -61,10 +61,17 @@ drop policy if exists "coaches delete own notes" on public.coach_notes;
 create policy "coaches delete own notes" on public.coach_notes for delete to authenticated
   using (public.is_staff() and author = public.my_email());
 
--- 3. Exit interview: one per player per season, built from the monthly write-ups and notes
+-- 3. Interviews: a midway check-in and an end-of-year exit interview per player per season (season = Aug–Jul)
+do $$ begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'exit_interviews')
+     and not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'exit_interviews' and column_name = 'stage') then
+    drop table public.exit_interviews;
+  end if;
+end $$;
 create table if not exists public.exit_interviews (
   player_id text not null references public.players(id) on delete cascade,
   season text not null,
+  stage text not null default 'end' check (stage in ('mid', 'end')),
   growth text,
   strengths text,
   offseason text,
@@ -72,7 +79,7 @@ create table if not exists public.exit_interviews (
   family_message text,
   updated_by text,
   updated_at timestamptz not null default now(),
-  primary key (player_id, season)
+  primary key (player_id, season, stage)
 );
 alter table public.exit_interviews enable row level security;
 drop policy if exists "coaches manage exit interviews" on public.exit_interviews;
