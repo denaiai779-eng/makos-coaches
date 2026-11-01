@@ -77,6 +77,30 @@
   .nbody { font-size:15.5px; line-height:1.45; white-space:pre-wrap; }
   .back { background:none; border:none; color:var(--cyan); font:inherit; font-weight:700; font-size:14px; padding:0; margin-bottom:8px; cursor:pointer; }
   .empty { color:var(--muted); font-size:14px; padding:6px 0; }
+  .exit-btn { display:flex; justify-content:space-between; align-items:center; width:100%; background:linear-gradient(120deg,rgba(255,210,63,.16),rgba(255,210,63,.06)); border:1px solid rgba(255,210,63,.45); color:var(--gold); border-radius:14px; padding:13px 14px; font:inherit; font-weight:800; letter-spacing:1px; font-size:14px; cursor:pointer; margin:12px 0 0; }
+  .tl { border-left:2px solid var(--hair); margin-left:6px; padding-left:14px; }
+  .tl .m { position:relative; padding:4px 0 12px; font-size:14px; }
+  .tl .m:before { content:''; position:absolute; left:-20px; top:9px; width:10px; height:10px; border-radius:50%; background:var(--cyan); }
+  .tl .m b { display:block; font-size:11px; letter-spacing:1.4px; text-transform:uppercase; color:var(--cyan); margin-bottom:2px; }
+  .tl .m i { font-style:normal; color:var(--muted); font-size:12px; font-weight:700; }
+  .btn.gold { background:var(--gold); }
+  #print { display:none; }
+  @media print {
+    @page { size:8.5in 11in; margin:.55in .6in; }
+    html, body { background:#fff !important; color:#0a1628; }
+    #app { display:none !important; }
+    #print { display:block; font-family:Inter, Arial, sans-serif; color:#0a1628; }
+    #print .ph { display:flex; align-items:center; gap:14px; background:#0a1628; color:#fff; border-radius:10px; padding:12px 16px; border-bottom:4px solid #00bfff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    #print .ph img { width:54px; border-radius:8px; }
+    #print .ph h1 { font-size:30px; color:#fff; }
+    #print .ph div div { color:#00bfff; font-size:11px; font-weight:800; letter-spacing:2px; text-transform:uppercase; }
+    #print .ps { display:flex; gap:10px; margin:12px 0; }
+    #print .ps div { flex:1; border:1.5px solid #c9d3e0; border-radius:8px; padding:7px; text-align:center; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#5a6472; }
+    #print .ps b { display:block; font-family:'Bebas Neue', Impact, sans-serif; font-size:26px; font-weight:400; color:#0a1628; letter-spacing:0; }
+    #print h2 { font-family:'Bebas Neue', Impact, sans-serif; font-weight:400; font-size:19px; letter-spacing:1.2px; color:#0d2847; border-bottom:2px solid #0d2847; margin:14px 0 5px; }
+    #print p { font-size:12.5px; line-height:1.5; margin:0; white-space:pre-wrap; }
+    #print .pf { margin-top:18px; font-size:10px; color:#5a6472; display:flex; justify-content:space-between; }
+  }
   .login { max-width:400px; margin:12vh auto 0; text-align:center; }
   .login img { width:96px; border-radius:20px; margin-bottom:14px; }
   .login p { color:var(--muted); font-size:14px; line-height:1.5; }
@@ -84,6 +108,7 @@
 </style>
 </head>
 <body>
+<div id="print"></div>
 <div class="wrap" id="app"><div class="empty" style="text-align:center;margin-top:30vh">Loading…</div></div>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
@@ -93,6 +118,10 @@ const TEAM_ID = 'makos-11u';
 const GROUP = {"aj-bledsoe": "Southfield", "anthony-aboufawaz": "Rochester", "ben-lehman": "Southfield", "blake-harrington": "Southfield", "bradley-kling": "Rochester", "camden-helms": "Rochester", "camden-wigwenkloski": "Rochester", "connor-furwa": "Southfield", "emory-ahart": "Rochester", "gibson-oliverio": "Southfield", "harrison-mumaw": "Rochester", "hayden-frye": "Southfield", "jabril-griffin": "Southfield", "james-petrous": "Rochester", "luke-christie": "Southfield", "maddox-cross": "Southfield", "noah-dababneh": "Rochester", "owen-martin": "Rochester", "reginald-thomas-iii": "Southfield", "robert-hoffman-iii": "Rochester", "sami-aboufawaz": "Rochester"};
 const TAGS = ['General', 'Hitting', 'Fielding', 'Throwing', 'Pitching', 'Mindset', 'Family'];
 const FIELDS = [['positions', 'Positions'], ['strengths', 'Strengths'], ['work_on', 'Needs work on'], ['what_works', 'What works with him'], ['next_plan', "Next month's plan"]];
+const EXIT = [['growth', 'Biggest growth this season'], ['strengths', 'Strengths to keep'], ['offseason', 'Off-season focus'], ['next_season', 'Next season: team, level, role'], ['family_message', 'What we tell the family']];
+// Seasons run Aug–Jul: Nov 2026 is the 2026-27 season
+const seasonOf = d => { const x = new Date(d); const y = x.getMonth() >= 7 ? x.getFullYear() : x.getFullYear() - 1; return `${y}-${String((y + 1) % 100).padStart(2, '0')}`; };
+const inSeason = (d, season) => seasonOf(d) === season;
 const RESULT = { nailed: 'Nailed it', getting: 'Getting there', struggled: 'Struggled' };
 
 const $ = id => document.getElementById(id);
@@ -104,29 +133,32 @@ const ago = ts => { const d = Math.floor((Date.now() - new Date(ts).getTime()) /
 const coachName = e => /devan/i.test(e || '') ? 'Devan' : /nick|plummer/i.test(e || '') ? 'Nick' : (e || 'Coach').split('@')[0];
 const written = r => r && FIELDS.some(([k]) => (r[k] || '').trim());
 
-let me = '', players = [], profiles = [], notes = [], cage = [], reports = [];
+let me = '', players = [], profiles = [], notes = [], cage = [], reports = [], exits = [];
 let tab = 'players', group = 'All', tag = 'General';
 const THIS_MONTH = monthOf(new Date());
+const SEASON = seasonOf(new Date());
 
 async function load() {
-  const [pl, pr, nt, lg, fb] = await Promise.all([
+  const [pl, pr, nt, lg, fb, ex] = await Promise.all([
     supabase.from('players').select('id, name, num, season').eq('team_id', TEAM_ID).order('name'),
     supabase.from('player_profiles').select('*'),
     supabase.from('coach_notes').select('*').order('created_at', { ascending: false }).limit(3000),
     supabase.from('log').select('player_id, ts, pts').eq('team_id', TEAM_ID).eq('type', 'cage').order('ts', { ascending: false }).limit(2000),
     supabase.from('cage_feedback').select('id, player_id, created_at, result, mastered, hit, total, note, series, video_path').order('created_at', { ascending: false }).limit(1000),
+    supabase.from('exit_interviews').select('*'),
   ]);
   players = (pl.data || []).sort((a, b) => a.name.split(' ').slice(-1)[0].localeCompare(b.name.split(' ').slice(-1)[0]));
   profiles = pr.data || []; notes = nt.data || []; cage = lg.data || [];
   reports = (fb.data || []).filter(r => !r.video_path && r.result);
-  if (pr.error || nt.error) return 'notes-off';
+  exits = ex.data || [];
+  if (pr.error || nt.error || ex.error) return 'notes-off';
 }
 
 function renderHome() {
   const kids = players.filter(p => group === 'All' || GROUP[p.id] === group);
   const done = players.filter(p => written(profiles.find(r => r.player_id === p.id && r.month === THIS_MONTH))).length;
   $('app').innerHTML = header() + `
-    <div class="tabs"><button data-t="players" class="${tab === 'players' ? 'on' : ''}">Players</button><button data-t="talk" class="${tab === 'talk' ? 'on' : ''}">Discussion</button></div>
+    <div class="tabs"><button data-t="players" class="${tab === 'players' ? 'on' : ''}">Players</button><button data-t="talk" class="${tab === 'talk' ? 'on' : ''}">Discussion</button><button data-t="exit" class="${tab === 'exit' ? 'on' : ''}">Exit Interviews</button></div>
     ${tab === 'players' ? `
       <div class="chips">${['All', 'Rochester', 'Southfield'].map(g => `<button data-g="${g}" class="${g === group ? 'on' : ''}">${g}</button>`).join('')}</div>
       <div class="sub" style="margin:4px 2px 6px">${done} / ${players.length} written up for ${monthName(THIS_MONTH).split(' ')[0]}</div>
@@ -137,11 +169,12 @@ function renderHome() {
         return `<div class="row" data-p="${p.id}"><div class="num">#${p.num}</div><div class="name">${esc(p.name)}</div>
           <span class="badge ${ok ? 'ok' : 'todo'}">${ok ? 'Written' : 'To write'}</span>
           <div class="meta">${GROUP[p.id] || ''}${GROUP[p.id] ? ' · ' : ''}${n.length} note${n.length === 1 ? '' : 's'} · ${c.length ? 'last cage ' + ago(c[0].ts) : 'no cage sessions'}</div></div>`;
-      }).join('')}` : feed(notes.slice(0, 150), true)}`;
+      }).join('')}` : tab === 'exit' ? exitList() : feed(notes.slice(0, 150), true)}`;
   wireHeader();
   document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; renderHome(); });
   document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { group = b.dataset.g; renderHome(); });
   document.querySelectorAll('.row[data-p]').forEach(r => r.onclick = () => openPlayer(r.dataset.p));
+  document.querySelectorAll('.row[data-x]').forEach(r => r.onclick = () => openExit(r.dataset.x));
   wireFeed(null);
 }
 
@@ -180,6 +213,7 @@ function openPlayer(pid, month = THIS_MONTH) {
   const mReps = reps.filter(r => monthOf(r.created_at) === month);
   $('app').innerHTML = `<button class="back" id="back">◂ All players</button>
     <h1>#${p.num} ${esc(p.name.toUpperCase())}</h1><div class="sub">${GROUP[pid] || ''}</div>
+    <button class="exit-btn" id="toExit"><span>EXIT INTERVIEW · ${SEASON}</span><span>${exitDone(exitOf(pid)) ? 'READY ▸' : exitOf(pid) ? 'DRAFT ▸' : '▸'}</span></button>
     <div class="card"><h3>From the app · ${monthName(month).split(' ')[0]}</h3>
       <div class="stats"><div class="stat"><b>${inMonth}</b><span>Cage sessions</span></div>
         <div class="stat"><b>${mReps.filter(r => r.mastered).length}</b><span>Mastered</span></div>
@@ -200,6 +234,7 @@ function openPlayer(pid, month = THIS_MONTH) {
     </div>`;
   window.scrollTo(0, 0);
   $('back').onclick = renderHome;
+  $('toExit').onclick = () => openExit(pid);
   $('mPrev').onclick = () => openPlayer(pid, shift(month, -1));
   $('mNext').onclick = () => openPlayer(pid, shift(month, 1));
   document.querySelectorAll('[data-tag]').forEach(b => b.onclick = () => { tag = b.dataset.tag; document.querySelectorAll('[data-tag]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -222,6 +257,74 @@ function openPlayer(pid, month = THIS_MONTH) {
     notes.unshift(data); openPlayer(pid, month);
   };
   wireFeed(pid, month);
+}
+
+// ===== EXIT INTERVIEWS =====
+// Everything collected all season (monthly write-ups, notes, app reports) rolls up into one page per kid.
+const exitOf = pid => exits.find(r => r.player_id === pid && r.season === SEASON);
+const exitDone = r => r && EXIT.every(([k]) => (r[k] || '').trim());
+function seasonData(pid) {
+  return {
+    months: profiles.filter(r => r.player_id === pid && written(r) && inSeason(r.month + 'T12:00:00', SEASON)).sort((a, b) => a.month.localeCompare(b.month)),
+    notes: notes.filter(n => n.player_id === pid && inSeason(n.created_at, SEASON)),
+    sessions: cage.filter(x => x.player_id === pid && inSeason(x.ts, SEASON)).length,
+    mastered: reports.filter(r => r.player_id === pid && r.mastered && inSeason(r.created_at, SEASON)).length,
+  };
+}
+function exitList() {
+  const kids = players.filter(p => group === 'All' || GROUP[p.id] === group);
+  const ready = players.filter(p => exitDone(exitOf(p.id))).length;
+  return `<div class="chips">${['All', 'Rochester', 'Southfield'].map(g => `<button data-g="${g}" class="${g === group ? 'on' : ''}">${g}</button>`).join('')}</div>
+    <div class="sub" style="margin:4px 2px 6px">${ready} / ${players.length} ready for the ${SEASON} exit interviews</div>
+    ${kids.map(p => {
+      const d = seasonData(p.id), x = exitOf(p.id);
+      const st = exitDone(x) ? ['ok', 'Ready'] : x ? ['todo', 'Draft'] : ['todo', 'Not started'];
+      return `<div class="row" data-x="${p.id}"><div class="num">#${p.num}</div><div class="name">${esc(p.name)}</div>
+        <span class="badge ${st[0]}">${st[1]}</span>
+        <div class="meta">${d.months.length} month${d.months.length === 1 ? '' : 's'} written · ${d.notes.length} note${d.notes.length === 1 ? '' : 's'} · ${d.sessions} cage sessions</div></div>`;
+    }).join('')}`;
+}
+function openExit(pid) {
+  const p = players.find(x => x.id === pid); if (!p) return;
+  const d = seasonData(pid), x = exitOf(pid) || {};
+  const tagCount = TAGS.map(t => [t, d.notes.filter(n => n.tag === t).length]).filter(([, n]) => n);
+  $('app').innerHTML = `<button class="back" id="back">◂ ${esc(p.name)}</button>
+    <h1>EXIT <b>INTERVIEW</b></h1><div class="sub">#${p.num} ${esc(p.name)} · ${SEASON} season${GROUP[pid] ? ' · ' + GROUP[pid] : ''}</div>
+    <div class="card"><h3>Season at a glance</h3>
+      <div class="stats"><div class="stat"><b>${d.sessions}</b><span>Cage sessions</span></div><div class="stat"><b>${d.mastered}</b><span>Mastered</span></div><div class="stat"><b>${p.season || 0}</b><span>Season pts</span></div></div>
+      <div class="sub">${d.months.length} monthly write-ups · ${d.notes.length} coach notes${tagCount.length ? ' (' + tagCount.map(([t, n]) => `${t} ${n}`).join(', ') + ')' : ''}</div>
+    </div>
+    <div class="card"><h3>How he changed</h3>
+      ${d.months.length ? `<div class="tl">${d.months.map(m => `<div class="m"><b>${monthName(m.month)}</b>${m.work_on ? `<i>Working on:</i> ${esc(m.work_on)}<br>` : ''}${m.strengths ? `<i>Strengths:</i> ${esc(m.strengths)}` : ''}</div>`).join('')}</div>` : '<div class="empty">No monthly write-ups yet. They fill this in as the season goes.</div>'}
+    </div>
+    <div class="card"><h3>The interview</h3>
+      ${EXIT.map(([k, label]) => `<label class="f"><span>${label}</span><textarea data-x="${k}" rows="3">${esc(x[k] || '')}</textarea></label>`).join('')}
+      <button class="btn" id="saveExit">SAVE</button>
+      <div class="msg" id="exitMsg">${x.updated_at ? `Last edit: ${coachName(x.updated_by)} ${ago(x.updated_at)}` : ''}</div>
+      <button class="btn gold" id="printExit">PRINT FOR THE MEETING</button>
+    </div>
+    <div class="card"><h3>All season's notes</h3>${feed(d.notes, false)}</div>`;
+  window.scrollTo(0, 0);
+  $('back').onclick = () => openPlayer(pid);
+  $('saveExit').onclick = async e => {
+    const row = { player_id: pid, season: SEASON, updated_by: me, updated_at: new Date().toISOString() };
+    document.querySelectorAll('textarea[data-x]').forEach(t => { row[t.dataset.x] = t.value.trim(); });
+    e.target.disabled = true;
+    const { error } = await supabase.from('exit_interviews').upsert(row);
+    e.target.disabled = false;
+    $('exitMsg').className = 'msg' + (error ? ' err' : '');
+    $('exitMsg').textContent = error ? 'Could not save. Try again.' : 'Saved.';
+    if (!error) { exits = exits.filter(r => !(r.player_id === pid && r.season === SEASON)); exits.push(row); }
+  };
+  $('printExit').onclick = () => {
+    const cur = {}; document.querySelectorAll('textarea[data-x]').forEach(t => { cur[t.dataset.x] = t.value.trim(); });
+    $('print').innerHTML = `<div class="ph"><img src="icons/icon-192.png" alt=""><div><h1>${esc(p.name.toUpperCase())} · #${p.num}</h1><div>Midwest Makos 11U · Exit Interview · ${SEASON}</div></div></div>
+      <div class="ps"><div><b>${d.sessions}</b>Cage sessions</div><div><b>${d.mastered}</b>Mastered</div><div><b>${p.season || 0}</b>Season points</div><div><b>${d.months.length}</b>Monthly write-ups</div></div>
+      ${EXIT.map(([k, label]) => `<h2>${label}</h2><p>${esc(cur[k] || '—')}</p>`).join('')}
+      <div class="pf"><span>Coach Devan · Coach Nick</span><span>#ReturnToQuality</span></div>`;
+    window.print();
+  };
+  wireFeed(pid);
 }
 
 function renderLogin(step, email, msg) {

@@ -1,5 +1,5 @@
 -- Makos Coaches app: notes for coaches only (Devan + Nick). Families and the Movement Coach never see these.
--- A monthly write-up that describes each kid, plus a running discussion thread per kid.
+-- A monthly write-up that describes each kid, a running discussion thread, and the end-of-season exit interview they build toward.
 -- Run once in the Supabase SQL editor (project rvmvwijyxeghzchyxeht).
 
 -- An earlier draft had no month column. If that ran, the table is empty: replace it.
@@ -51,3 +51,21 @@ create policy "coaches add notes" on public.coach_notes for insert to authentica
 drop policy if exists "coaches delete own notes" on public.coach_notes;
 create policy "coaches delete own notes" on public.coach_notes for delete to authenticated
   using (public.is_coach() and author = public.my_email());
+
+-- 3. Exit interview: one per player per season, built from the monthly write-ups and notes
+create table if not exists public.exit_interviews (
+  player_id text not null references public.players(id) on delete cascade,
+  season text not null,
+  growth text,
+  strengths text,
+  offseason text,
+  next_season text,
+  family_message text,
+  updated_by text,
+  updated_at timestamptz not null default now(),
+  primary key (player_id, season)
+);
+alter table public.exit_interviews enable row level security;
+drop policy if exists "coaches manage exit interviews" on public.exit_interviews;
+create policy "coaches manage exit interviews" on public.exit_interviews for all to authenticated
+  using (public.is_coach()) with check (public.is_coach());
